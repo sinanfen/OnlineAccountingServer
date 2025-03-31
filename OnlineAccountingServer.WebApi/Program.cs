@@ -1,8 +1,30 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using OnlineAccountingServer.Application.Services.AppServices;
+using OnlineAccountingServer.Domain.AppEntities.Identity;
+using OnlineAccountingServer.Persistence.Contexts;
+using OnlineAccountingServer.Persistence.Services.AppServices;
 using OnlineAccountingServer.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
+});
+
+builder.Services.AddIdentity<AppUser, AppRole>()
+    .AddEntityFrameworkStores<AppDbContext>();
+
+builder.Services.AddScoped<ICompanyService, CompanyService>();
+
+builder.Services.AddMediatR(
+    cfg => cfg.RegisterServicesFromAssembly
+    (typeof(OnlineAccountingServer.Application.AssemblyReference).Assembly));
+
+builder.Services.AddAutoMapper(
+    typeof(OnlineAccountingServer.Persistence.AssemblyReference).Assembly);
 
 //We use the AssemblyReference class to specify that the controller presentation will be used from within.
 builder.Services.AddControllers()
@@ -48,7 +70,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/openapi/v1.json", "OnlineAccountingServer.WebApi v1");
-        options.RoutePrefix = "swagger";  
+        options.RoutePrefix = "swagger";
         options.DisplayRequestDuration();
         options.EnablePersistAuthorization();
     });
